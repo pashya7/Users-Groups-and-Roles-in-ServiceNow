@@ -1,0 +1,1596 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SN Xpert — Week 3 | Users, Groups & Roles | Prasad Shelar</title>
+<meta name="description" content="Master ServiceNow Users, Groups, Roles, RBAC, Authentication & User Lifecycle with Prasad Shelar's Pro Developer Weekend Mentorship Program.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --surface3: #1e293b;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --pink: #ec4899;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --radius: 16px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [data-theme="light"] {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface2: #f1f5f9;
+    --surface3: #e2e8f0;
+    --border: #cbd5e1;
+    --text: #1e293b;
+    --muted: #64748b;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+    transition: background var(--transition), color var(--transition);
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  [data-theme="light"] body::before { background-image:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  }
+
+  ::selection { background: rgba(0,212,255,0.3); color: #fff; }
+
+  /* ═══════════════════════════════════════ */
+  /* PROGRESS BAR */
+  /* ═══════════════════════════════════════ */
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px; z-index: 10000;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--pink));
+    width: 0%; transition: width 0.1s linear;
+    box-shadow: 0 0 14px rgba(0,212,255,0.5);
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* TOP TOOLBAR */
+  /* ═══════════════════════════════════════ */
+  .toolbar {
+    position: fixed; top: 3px; left: 0; right: 0; z-index: 9999;
+    background: rgba(10,14,26,0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all var(--transition);
+  }
+  [data-theme="light"] .toolbar { background: rgba(248,250,252,0.9); }
+  .toolbar-left { display: flex; align-items: center; gap: 12px; }
+  .toolbar-brand { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+  .toolbar-sep { width: 1px; height: 20px; background: var(--border); }
+  .toolbar-topic { font-size: 12px; color: var(--muted); }
+  .toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .tb-btn {
+    width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03); color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.2s;
+  }
+  .tb-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.06); }
+  .tb-btn.active { background: rgba(0,212,255,0.1); color: var(--accent); border-color: var(--accent); }
+  .tb-bookmark-count {
+    position: absolute; top: -4px; right: -4px; font-size: 9px;
+    background: var(--accent2); color: #fff; width: 16px; height: 16px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* SEARCH MODAL */
+  /* ═══════════════════════════════════════ */
+  .search-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+    display: none; align-items: flex-start; justify-content: center;
+    padding-top: 120px;
+  }
+  .search-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+  .search-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    width: 90%; max-width: 600px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .search-input-wrap { display: flex; align-items: center; padding: 16px 20px; gap: 12px; border-bottom: 1px solid var(--border); }
+  .search-input-wrap i { color: var(--accent); font-size: 18px; }
+  .search-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-family: 'Sora', sans-serif; font-size: 16px;
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-hint { padding: 12px 20px; font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .search-results { max-height: 300px; overflow-y: auto; }
+  .search-result-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    cursor: pointer; transition: background 0.15s; border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .search-result-item:hover { background: rgba(0,212,255,0.05); }
+  .search-result-item .sr-icon { font-size: 14px; color: var(--accent); width: 32px; height: 32px; background: rgba(0,212,255,0.08); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .search-result-item .sr-text { font-size: 14px; }
+  .search-result-item .sr-section { font-size: 11px; color: var(--muted); }
+  .search-shortcut { display: inline-flex; align-items: center; justify-content: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* ═══════════════════════════════════════ */
+  /* BOOKMARKS PANEL */
+  /* ═══════════════════════════════════════ */
+  .bookmarks-panel {
+    position: fixed; right: -380px; top: 60px; width: 360px; bottom: 0;
+    background: var(--surface); border-left: 1px solid var(--border);
+    z-index: 9998; transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column; box-shadow: -8px 0 30px rgba(0,0,0,0.3);
+  }
+  .bookmarks-panel.open { right: 0; }
+  .bp-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .bp-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .bp-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; }
+  .bp-close:hover { color: var(--danger); }
+  .bp-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .bp-empty { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+  .bp-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+  .bp-item:hover { border-color: var(--accent); }
+  .bp-item .bp-icon { color: var(--accent); font-size: 14px; }
+  .bp-item .bp-text { flex: 1; font-size: 13px; }
+  .bp-item .bp-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 4px; }
+  .bp-item .bp-remove:hover { color: var(--danger); }
+  .bp-export { padding: 16px; border-top: 1px solid var(--border); }
+  .bp-export button { width: 100%; padding: 10px; background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; color: var(--accent); font-family: 'Space Mono', monospace; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .bp-export button:hover { background: rgba(0,212,255,0.15); }
+
+  /* ═══════════════════════════════════════ */
+  /* FLOATING NAV */
+  /* ═══════════════════════════════════════ */
+  .float-nav {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+    z-index: 100; display: flex; flex-direction: column; gap: 5px;
+  }
+  .float-nav a {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1.5px solid var(--muted); background: transparent;
+    transition: all 0.3s; display: block; position: relative;
+  }
+  .float-nav a.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(0,212,255,0.5); transform: scale(1.3); }
+  .float-nav a:hover { border-color: var(--accent); }
+  .float-nav a .nav-tip {
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    font-size: 10px; padding: 4px 12px; border-radius: 6px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    font-family: 'Space Mono', monospace; letter-spacing: 0.05em;
+  }
+  .float-nav a:hover .nav-tip { opacity: 1; }
+
+  /* ═══════════════════════════════════════ */
+  /* BACK TO TOP */
+  /* ═══════════════════════════════════════ */
+  .back-to-top {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--accent); color: #0a0e1a; border: none;
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: translateY(20px); transition: all 0.3s;
+    box-shadow: 0 4px 16px rgba(0,212,255,0.3);
+  }
+  .back-to-top.visible { opacity: 1; transform: translateY(0); }
+  .back-to-top:hover { transform: translateY(-3px); box-shadow: 0 6px 24px rgba(0,212,255,0.4); }
+
+  /* ═══════════════════════════════════════ */
+  /* NOTIFICATION TOAST */
+  /* ═══════════════════════════════════════ */
+  .toast-container { position: fixed; bottom: 80px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 20px; display: flex; align-items: center; gap: 10px;
+    font-size: 13px; min-width: 260px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.5s forwards;
+  }
+  .toast .toast-icon { font-size: 16px; }
+  @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes fadeOut { to { opacity: 0; transform: translateX(30px); } }
+
+  /* ═══════════════════════════════════════ */
+  /* HERO */
+  /* ═══════════════════════════════════════ */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 100px 24px 60px;
+    overflow: hidden; z-index: 1;
+  }
+  .hero-orb { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; }
+  .orb1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(0,212,255,0.18), transparent 70%); top: -200px; left: -150px; animation: orbFloat 8s ease-in-out infinite; }
+  .orb2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,58,237,0.2), transparent 70%); bottom: -100px; right: -100px; animation: orbFloat 10s ease-in-out infinite reverse; }
+  .orb3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(236,72,153,0.12), transparent 70%); top: 40%; left: 60%; animation: orbFloat 12s ease-in-out infinite 2s; }
+  @keyframes orbFloat { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -20px) scale(1.05); } 66% { transform: translate(-20px, 15px) scale(0.95); } }
+
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.25); border-radius: 100px; padding: 6px 18px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 20px; animation: fadeUp 0.6s ease both; }
+  .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  .hero-program { margin-bottom: 10px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; animation: fadeUp 0.6s 0.05s ease both; }
+
+  /* PRESENTER */
+  .presenter { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; animation: fadeUp 0.6s 0.08s ease both; justify-content: center; }
+  .presenter-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(124,58,237,0.15)); }
+  .presenter-info { text-align: left; }
+  .presenter-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .presenter-title { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .hero h1 { font-size: clamp(2.2rem, 5.5vw, 4.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; animation: fadeUp 0.6s 0.1s ease both; }
+  .hero h1 span.line1 { display: block; color: #fff; }
+  [data-theme="light"] .hero h1 span.line1 { color: #1e293b; }
+  .hero h1 span.line2 { display: block; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% auto; animation: fadeUp 0.6s 0.1s ease both, gradientShift 4s linear infinite; }
+  @keyframes gradientShift { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+  .hero-sub { margin-top: 18px; max-width: 750px; color: var(--muted); font-size: 1.02rem; animation: fadeUp 0.6s 0.2s ease both; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; animation: fadeUp 0.6s 0.3s ease both; }
+  .chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 6px; transition: border-color 0.3s, transform 0.3s; cursor: default; }
+  .chip:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  /* STATS BAR */
+  .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-radius: 16px; overflow: hidden; animation: fadeUp 0.6s 0.35s ease both; max-width: 720px; margin: 36px auto 0; }
+  .stat-item { background: var(--surface); padding: 20px; text-align: center; transition: background 0.3s; }
+  .stat-item:hover { background: var(--surface2); }
+  .stat-num { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+  .stat-num.purple { color: var(--accent2); }
+  .stat-num.green { color: var(--accent3); }
+  .stat-num.warn { color: var(--warn); }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+  /* CTA */
+  .hero-cta { display: flex; gap: 14px; margin-top: 32px; animation: fadeUp 0.6s 0.4s ease both; flex-wrap: wrap; justify-content: center; }
+  .btn-primary {
+    padding: 12px 28px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(0,212,255,0.2);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,212,255,0.3); }
+  .btn-secondary {
+    padding: 12px 28px; border-radius: 10px;
+    border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+    color: var(--text); font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .scroll-cue { margin-top: 48px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; letter-spacing: 0.1em; animation: fadeUp 0.6s 0.5s ease both; }
+  .scroll-arrow { width: 20px; height: 20px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); animation: bounce 1.5s infinite; }
+
+  /* ═══════════════════════════════════════ */
+  /* LAYOUT */
+  /* ═══════════════════════════════════════ */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  section { padding: 80px 0; }
+  .section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 48px; position: relative; }
+  .section-header .tag { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; padding: 4px 12px; white-space: nowrap; }
+  .section-header h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -0.01em; }
+  .section-header .line { flex: 1; height: 1px; background: var(--border); }
+  .bookmark-section-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 6px; transition: all 0.2s; border-radius: 6px; }
+  .bookmark-section-btn:hover { color: var(--warn); }
+  .bookmark-section-btn.bookmarked { color: var(--warn); }
+
+  /* ═══════════════════════════════════════ */
+  /* CONCEPT CARDS */
+  /* ═══════════════════════════════════════ */
+  .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .concept-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; position: relative; overflow: hidden; transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; cursor: default; }
+  .concept-card:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.35); box-shadow: 0 8px 30px rgba(0,212,255,0.08); }
+  .concept-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .card-user::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .card-group::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .card-role::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .card-acl::before { background: linear-gradient(90deg, var(--warn), transparent); }
+  .card-auth::before { background: linear-gradient(90deg, var(--pink), transparent); }
+  .card-lifecycle::before { background: linear-gradient(90deg, var(--danger), transparent); }
+  .card-icon { font-size: 1.8rem; margin-bottom: 14px; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; }
+  .card-user .card-icon { background: rgba(0,212,255,0.08); }
+  .card-group .card-icon { background: rgba(124,58,237,0.08); }
+  .card-role .card-icon { background: rgba(16,185,129,0.08); }
+  .card-acl .card-icon { background: rgba(245,158,11,0.08); }
+  .card-auth .card-icon { background: rgba(236,72,153,0.08); }
+  .card-lifecycle .card-icon { background: rgba(239,68,68,0.08); }
+  .concept-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+  .concept-card p { color: var(--muted); font-size: 13px; }
+  .card-table-name { margin-top: 14px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.15); border-radius: 6px; padding: 5px 10px; display: inline-block; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+  .tag-item { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 5px; padding: 2px 8px; font-size: 10px; color: var(--muted); }
+
+  /* ═══════════════════════════════════════ */
+  /* ANALOGY */
+  /* ═══════════════════════════════════════ */
+  .analogy-section { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; position: relative; overflow: hidden; }
+  .analogy-section::before { content: '🏥'; position: absolute; top: 20px; right: 30px; font-size: 4rem; opacity: 0.06; }
+  .analogy-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .analogy-subtitle { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .analogy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+  .analogy-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; transition: transform 0.3s, border-color 0.3s; }
+  .analogy-item:hover { transform: translateY(-3px); border-color: var(--accent); }
+  .analogy-item .a-emoji { font-size: 1.8rem; margin-bottom: 8px; }
+  .analogy-item .a-real { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .analogy-item .a-label { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .analogy-item .a-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .analogy-flow { margin-top: 20px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.04em; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+
+  /* ═══════════════════════════════════════ */
+  /* AUTH COMPARISON */
+  /* ═══════════════════════════════════════ */
+  .auth-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; }
+  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; position: relative; overflow: hidden; }
+  .auth-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .auth-card.authn::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .auth-card.authz::before { background: linear-gradient(90deg, var(--accent3), var(--warn)); }
+  .auth-card .auth-icon { font-size: 2.2rem; margin-bottom: 12px; }
+  .auth-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+  .auth-card .auth-question { font-family: 'Space Mono', monospace; font-size: 12px; margin-bottom: 12px; padding: 5px 12px; border-radius: 6px; display: inline-block; }
+  .authn .auth-question { color: var(--accent); background: rgba(0,212,255,0.08); }
+  .authz .auth-question { color: var(--accent3); background: rgba(16,185,129,0.08); }
+  .auth-methods { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .auth-methods li { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .auth-methods li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .authn .auth-methods li::before { background: var(--accent); }
+  .authz .auth-methods li::before { background: var(--accent3); }
+  .auth-vs { display: flex; align-items: center; justify-content: center; padding: 0 16px; }
+  .auth-vs span { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+  /* ═══════════════════════════════════════ */
+  /* FLOW */
+  /* ═══════════════════════════════════════ */
+  .flow-section { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; }
+  .flow-diagram { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0; }
+  .flow-node { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; min-width: 95px; text-align: center; transition: all 0.3s; cursor: default; }
+  .flow-node:hover { border-color: var(--accent); box-shadow: 0 0 18px rgba(0,212,255,0.1); transform: translateY(-3px); }
+  .flow-node .fn-icon { font-size: 1.3rem; }
+  .flow-node .fn-label { font-size: 9px; font-weight: 700; color: var(--text); letter-spacing: 0.06em; text-transform: uppercase; }
+  .flow-node .fn-sub { font-size: 9px; color: var(--muted); }
+  .flow-arrow { display: flex; align-items: center; padding: 0 4px; color: var(--accent); font-size: 16px; animation: flowPulse 2s ease-in-out infinite; }
+  @keyframes flowPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* ═══════════════════════════════════════ */
+  /* LIFECYCLE TIMELINE */
+  /* ═══════════════════════════════════════ */
+  .lifecycle-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; }
+  .timeline-track { display: flex; align-items: stretch; gap: 0; position: relative; }
+  .timeline-connector { position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3), var(--warn), var(--pink), var(--danger)); z-index: 1; border-radius: 2px; }
+  .timeline-step { flex: 1; text-align: center; position: relative; padding: 0 6px; }
+  .timeline-step .ts-dot { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; margin: 0 auto 10px; position: relative; z-index: 2; transition: transform 0.3s; }
+  .timeline-step:hover .ts-dot { transform: scale(1.15); }
+  .ts-dot.dot-prov { background: rgba(0,212,255,0.15); border: 2px solid var(--accent); }
+  .ts-dot.dot-onboard { background: rgba(124,58,237,0.15); border: 2px solid var(--accent2); }
+  .ts-dot.dot-active { background: rgba(16,185,129,0.15); border: 2px solid var(--accent3); }
+  .ts-dot.dot-change { background: rgba(245,158,11,0.15); border: 2px solid var(--warn); }
+  .ts-dot.dot-review { background: rgba(236,72,153,0.15); border: 2px solid var(--pink); }
+  .ts-dot.dot-off { background: rgba(239,68,68,0.15); border: 2px solid var(--danger); }
+  .timeline-step .ts-label { font-size: 11px; font-weight: 600; margin-bottom: 3px; }
+  .timeline-step .ts-desc { font-size: 9px; color: var(--muted); line-height: 1.4; }
+
+  /* ═══════════════════════════════════════ */
+  /* TABLES */
+  /* ═══════════════════════════════════════ */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-filter { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 11px; font-family: 'Space Mono', monospace; cursor: pointer; transition: all 0.2s; }
+  .filter-btn:hover, .filter-btn.active { background: rgba(0,212,255,0.08); border-color: var(--accent); color: var(--accent); }
+  .roles-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .roles-table th { background: var(--surface2); padding: 12px 18px; text-align: left; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; }
+  .roles-table td { padding: 12px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .roles-table tr:last-child td { border-bottom: none; }
+  .roles-table tr { transition: background 0.2s; }
+  .roles-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .role-badge { font-family: 'Space Mono', monospace; font-size: 11px; padding: 3px 9px; border-radius: 5px; display: inline-block; }
+  .badge-admin { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .badge-itil { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+  .badge-hr { background: rgba(124,58,237,0.12); color: #a78bfa; border: 1px solid rgba(124,58,237,0.25); }
+  .badge-proc { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+  .badge-warn { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+  .badge-pink { background: rgba(236,72,153,0.1); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
+
+  /* ═══════════════════════════════════════ */
+  /* ACCORDION */
+  /* ═══════════════════════════════════════ */
+  .accordion { display: flex; flex-direction: column; gap: 8px; }
+  .accordion-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.3s; }
+  .accordion-item.open { border-color: rgba(0,212,255,0.3); }
+  .accordion-trigger { width: 100%; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; background: none; border: none; color: var(--text); font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .accordion-trigger:hover { background: rgba(255,255,255,0.02); }
+  .accordion-trigger .acc-left { display: flex; align-items: center; gap: 10px; }
+  .accordion-trigger .acc-icon { font-size: 1rem; }
+  .accordion-trigger .acc-badge { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent); background: rgba(0,212,255,0.08); padding: 2px 8px; border-radius: 4px; }
+  .accordion-trigger .acc-arrow { transition: transform 0.3s; font-size: 12px; color: var(--muted); }
+  .accordion-item.open .acc-arrow { transform: rotate(180deg); }
+  .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .accordion-item.open .accordion-body { max-height: 800px; }
+  .accordion-content { padding: 0 20px 20px; }
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+  .field-chip { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 12px; transition: border-color 0.2s; }
+  .field-chip:hover { border-color: var(--accent2); }
+  .field-chip .fc-name { font-family: 'Space Mono', monospace; color: var(--accent); font-size: 11px; }
+  .field-chip .fc-type { color: var(--muted); font-size: 10px; }
+
+  /* ═══════════════════════════════════════ */
+  /* TABS */
+  /* ═══════════════════════════════════════ */
+  .tab-container { margin-top: 0; }
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; overflow-x: auto; }
+  .tab-btn { padding: 10px 18px; border-radius: 8px; border: none; background: none; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.04em; }
+  .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .tab-btn.active { background: rgba(0,212,255,0.1); color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ═══════════════════════════════════════ */
+  /* CODE CARDS */
+  /* ═══════════════════════════════════════ */
+  .api-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .api-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color 0.3s, box-shadow 0.3s; }
+  .api-card:hover { border-color: rgba(124,58,237,0.4); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .api-card-header { padding: 10px 18px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+  .api-card-header .dot-r { width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
+  .api-card-header .dot-y { width: 9px; height: 9px; border-radius: 50%; background: #f59e0b; }
+  .api-card-header .dot-g { width: 9px; height: 9px; border-radius: 50%; background: #10b981; }
+  .api-card-header span { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-left: 6px; }
+  .api-card-header .copy-btn { margin-left: auto; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); font-size: 10px; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-family: 'Space Mono', monospace; transition: all 0.2s; }
+  .api-card-header .copy-btn:hover { background: rgba(0,212,255,0.1); color: var(--accent); border-color: var(--accent); }
+  .api-card-header .copy-btn.copied { background: rgba(16,185,129,0.1); color: var(--accent3); border-color: var(--accent3); }
+  pre { padding: 18px; font-family: 'Space Mono', monospace; font-size: 11.5px; line-height: 1.9; color: #94a3b8; overflow-x: auto; margin: 0; }
+  .kw { color: #7c3aed; } .fn { color: var(--accent); } .str { color: #10b981; } .cm { color: #475569; font-style: italic; }
+
+  /* ═══════════════════════════════════════ */
+  /* TIPS */
+  /* ═══════════════════════════════════════ */
+  .tips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .tip-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; gap: 14px; align-items: flex-start; transition: border-color 0.3s, transform 0.3s; }
+  .tip-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .tip-num { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--accent); background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .tip-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .tip-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .mono-sm { font-family: 'Space Mono', monospace; color: var(--accent); font-size: 11px; background: rgba(0,212,255,0.06); padding: 1px 5px; border-radius: 3px; }
+
+  /* ═══════════════════════════════════════ */
+  /* DO/DONT */
+  /* ═══════════════════════════════════════ */
+  .dos-donts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .do-box, .dont-box { border-radius: 14px; padding: 28px; border: 1px solid; }
+  .do-box { background: rgba(16,185,129,0.04); border-color: rgba(16,185,129,0.25); }
+  .dont-box { background: rgba(239,68,68,0.04); border-color: rgba(239,68,68,0.2); }
+  .do-box h3 { color: #34d399; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px; font-family: 'Space Mono', monospace; }
+  .dont-box h3 { color: #f87171; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px; font-family: 'Space Mono', monospace; }
+  .practice-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; font-size: 13px; padding: 6px 10px; border-radius: 8px; transition: background 0.2s; }
+  .practice-item:hover { background: rgba(255,255,255,0.02); }
+  .practice-item:last-child { margin-bottom: 0; }
+  .practice-item .icon { font-size: 13px; flex-shrink: 0; margin-top: 3px; }
+
+  /* ═══════════════════════════════════════ */
+  /* QUIZ */
+  /* ═══════════════════════════════════════ */
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  .quiz-score { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; }
+  .quiz-score-num { font-family: 'Space Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--accent3); }
+  .quiz-score-label { font-size: 11px; color: var(--muted); }
+  .quiz-progress { margin-top: 4px; height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; width: 100px; }
+  .quiz-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent3), var(--accent)); border-radius: 3px; transition: width 0.3s; }
+  .quiz-reset { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #f87171; padding: 8px 16px; border-radius: 8px; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+  .quiz-reset:hover { background: rgba(239,68,68,0.15); }
+  .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+  .quiz-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; transition: border-color 0.3s; }
+  .quiz-card.answered { pointer-events: none; }
+  .quiz-card.answered-correct { border-color: rgba(16,185,129,0.4); }
+  .quiz-card.answered-wrong { border-color: rgba(239,68,68,0.3); }
+  .q-num { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .q-difficulty { display: inline-block; font-size: 9px; font-family: 'Space Mono', monospace; padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
+  .q-easy { background: rgba(16,185,129,0.1); color: var(--accent3); }
+  .q-medium { background: rgba(245,158,11,0.1); color: var(--warn); }
+  .q-hard { background: rgba(239,68,68,0.1); color: var(--danger); }
+  .q-text { font-size: 14px; font-weight: 600; margin-bottom: 14px; line-height: 1.5; }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-option { padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+  .quiz-option:hover { border-color: var(--accent2); color: var(--text); background: rgba(124,58,237,0.05); }
+  .quiz-option.correct { border-color: var(--accent3); background: rgba(16,185,129,0.08); color: #34d399; }
+  .quiz-option.wrong { border-color: var(--danger); background: rgba(239,68,68,0.06); color: #f87171; }
+  .opt-key { font-family: 'Space Mono', monospace; font-size: 11px; opacity: 0.6; width: 18px; }
+  .q-explanation { margin-top: 12px; padding: 12px 16px; background: rgba(0,212,255,0.04); border: 1px solid rgba(0,212,255,0.1); border-radius: 8px; font-size: 12px; color: var(--muted); display: none; line-height: 1.6; }
+  .q-explanation.show { display: block; animation: fadeIn 0.3s ease; }
+  .q-explanation strong { color: var(--text); }
+
+  /* ═══════════════════════════════════════ */
+  /* EXERCISE */
+  /* ═══════════════════════════════════════ */
+  .exercise-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+  .exercise-header { background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(124,58,237,0.05)); padding: 28px 32px; border-bottom: 1px solid var(--border); }
+  .exercise-header h3 { font-size: 1.1rem; font-weight: 700; }
+  .exercise-header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .exercise-scenario { padding: 20px 32px; border-bottom: 1px solid var(--border); background: rgba(245,158,11,0.03); }
+  .exercise-scenario p { font-size: 13px; color: var(--muted); line-height: 1.7; font-style: italic; }
+  .exercise-tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .tier { padding: 24px; border-right: 1px solid var(--border); }
+  .tier:last-child { border-right: none; }
+  .tier-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; margin-bottom: 14px; }
+  .bronze { background: rgba(180,83,9,0.15); color: #d97706; border: 1px solid rgba(180,83,9,0.3); }
+  .silver { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+  .gold { background: rgba(250,204,21,0.1); color: #fbbf24; border: 1px solid rgba(250,204,21,0.25); }
+  .bonus-badge { background: rgba(124,58,237,0.1); color: #a78bfa; border: 1px solid rgba(124,58,237,0.25); }
+  .tier ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .tier ul li { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: flex-start; line-height: 1.5; }
+  .tier ul li::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+  .tier-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); cursor: pointer; padding: 4px 0; user-select: none; }
+  .tier-check input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; background: var(--bg); cursor: pointer; flex-shrink: 0; transition: all 0.2s; position: relative; }
+  .tier-check input[type="checkbox"]:checked { background: var(--accent3); border-color: var(--accent3); }
+  .tier-check input[type="checkbox"]:checked::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+
+  /* ═══════════════════════════════════════ */
+  /* RELATED */
+  /* ═══════════════════════════════════════ */
+  .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; transition: all 0.3s; cursor: default; }
+  .related-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .related-card .rc-icon { font-size: 1.2rem; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(124,58,237,0.08); border-radius: 10px; flex-shrink: 0; }
+  .related-card .rc-text { font-size: 13px; font-weight: 600; }
+  .related-card .rc-sub { font-size: 10px; color: var(--muted); }
+  .lp-label { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  .lp-track { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .lp-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; font-size: 12px; color: var(--muted); transition: all 0.2s; }
+  .lp-item.current { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .lp-item:hover { border-color: var(--accent2); color: var(--text); }
+  .lp-arrow { color: var(--muted); font-size: 13px; }
+
+  /* ═══════════════════════════════════════ */
+  /* NOTES PANEL */
+  /* ═══════════════════════════════════════ */
+  .notes-panel {
+    position: fixed; left: -400px; top: 60px; width: 380px; bottom: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    z-index: 9998; transition: left 0.4s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column; box-shadow: 8px 0 30px rgba(0,0,0,0.3);
+  }
+  .notes-panel.open { left: 0; }
+  .np-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .np-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .np-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+  .np-body { flex: 1; padding: 16px; }
+  .np-textarea { width: 100%; height: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; color: var(--text); font-family: 'Sora', sans-serif; font-size: 13px; line-height: 1.7; resize: none; outline: none; }
+  .np-textarea::placeholder { color: var(--muted); }
+  .np-textarea:focus { border-color: var(--accent); }
+  .np-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .np-footer button { flex: 1; padding: 8px; border-radius: 8px; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+  .np-save { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: var(--accent3); }
+  .np-save:hover { background: rgba(16,185,129,0.2); }
+  .np-clear { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #f87171; }
+  .np-clear:hover { background: rgba(239,68,68,0.15); }
+
+  /* ═══════════════════════════════════════ */
+  /* FOOTER */
+  /* ═══════════════════════════════════════ */
+  footer { border-top: 1px solid var(--border); padding: 60px 24px 40px; text-align: center; color: var(--muted); font-size: 13px; position: relative; z-index: 1; }
+  footer strong { color: var(--text); }
+  .footer-links { display: flex; justify-content: center; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .footer-links a { color: var(--muted); text-decoration: none; font-size: 12px; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--accent); }
+  .footer-brand { margin-top: 20px; font-family: 'Space Mono', monospace; font-size: 16px; color: var(--accent); letter-spacing: 0.05em; }
+
+  /* ═══════════════════════════════════════ */
+  /* HIERARCHY VIS */
+  /* ═══════════════════════════════════════ */
+  .hierarchy-vis { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-top: 24px; }
+  .hier-title { font-size: 13px; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .hier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .hier-col-label { font-size: 11px; color: var(--muted); margin-bottom: 10px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+  .hier-tree-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-size: 12px; color: var(--muted); line-height: 2; font-family: 'Space Mono', monospace; }
+
+  /* ═══════════════════════════════════════ */
+  /* ALERT BOXES */
+  /* ═══════════════════════════════════════ */
+  .alert-box { margin-top: 16px; padding: 14px 20px; border-radius: 10px; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+  .alert-warn { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); color: var(--warn); }
+  .alert-danger { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: #f87171; }
+  .alert-info { background: rgba(0,212,255,0.04); border: 1px solid rgba(0,212,255,0.15); color: var(--accent); }
+  .alert-box code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 12px; }
+
+  /* ═══════════════════════════════════════ */
+  /* ANIMATIONS */
+  /* ═══════════════════════════════════════ */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes bounce { 0%, 100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(6px) rotate(45deg); } }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .divider { height: 1px; background: var(--border); margin: 0; }
+  .spacer-sm { height: 20px; }
+  .spacer-md { height: 36px; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media(max-width: 900px) {
+    .flow-diagram { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+    .dos-donts { grid-template-columns: 1fr; }
+    .exercise-tiers { grid-template-columns: 1fr; }
+    .tier { border-right: none; border-bottom: 1px solid var(--border); }
+    .tier:last-child { border-bottom: none; }
+    .auth-compare { grid-template-columns: 1fr; }
+    .auth-vs { padding: 10px 0; }
+    .auth-vs span { transform: rotate(90deg); }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .float-nav { display: none; }
+    .timeline-track { flex-wrap: wrap; justify-content: center; }
+    .timeline-connector { display: none; }
+    .timeline-step { min-width: 90px; margin-bottom: 10px; }
+    .hier-grid { grid-template-columns: 1fr; }
+    .toolbar-topic { display: none; }
+    .notes-panel, .bookmarks-panel { width: 300px; }
+  }
+  @media(max-width: 600px) {
+    .quiz-grid, .tips-grid, .api-grid, .concept-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 2rem; }
+    .presenter { flex-direction: column; }
+  }
+
+  /* KEYBOARD SHORTCUT HINT */
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; padding: 2px 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- TOP TOOLBAR -->
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-left">
+    <div class="toolbar-brand">SN Xpert</div>
+    <div class="toolbar-sep"></div>
+    <div class="toolbar-topic">Week 3 — Users, Groups & Roles</div>
+  </div>
+  <div class="toolbar-right">
+    <button class="tb-btn" id="searchBtn" title="Search (Ctrl+K)"><i class="fas fa-search"></i></button>
+    <button class="tb-btn" id="notesBtn" title="Notes (Ctrl+N)"><i class="fas fa-sticky-note"></i></button>
+    <button class="tb-btn" id="bookmarksBtn" title="Bookmarks" style="position:relative"><i class="fas fa-bookmark"></i><span class="tb-bookmark-count" id="bmCount">0</span></button>
+    <button class="tb-btn" id="themeBtn" title="Toggle Theme (Ctrl+D)"><i class="fas fa-moon" id="themeIcon"></i></button>
+    <button class="tb-btn" id="fontUpBtn" title="Increase Font"><i class="fas fa-plus"></i></button>
+    <button class="tb-btn" id="fontDownBtn" title="Decrease Font"><i class="fas fa-minus"></i></button>
+    <button class="tb-btn" id="printBtn" title="Print / PDF"><i class="fas fa-print"></i></button>
+  </div>
+</div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search topics, APIs, tips..." autocomplete="off">
+      <span class="search-shortcut"><kbd class="kbd">ESC</kbd></span>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+    <div class="search-hint"><i class="fas fa-keyboard"></i> &nbsp;Use <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">K</kbd> to open search anytime</div>
+  </div>
+</div>
+
+<!-- NOTES PANEL -->
+<div class="notes-panel" id="notesPanel">
+  <div class="np-header">
+    <h3><i class="fas fa-sticky-note" style="color:var(--warn)"></i> My Notes</h3>
+    <button class="np-close" onclick="toggleNotes()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="np-body">
+    <textarea class="np-textarea" id="notesTextarea" placeholder="Take notes while learning...&#10;&#10;Your notes are saved automatically in your browser."></textarea>
+  </div>
+  <div class="np-footer">
+    <button class="np-save" onclick="saveNotes()"><i class="fas fa-save"></i> Save</button>
+    <button class="np-clear" onclick="clearNotes()"><i class="fas fa-trash"></i> Clear</button>
+  </div>
+</div>
+
+<!-- BOOKMARKS PANEL -->
+<div class="bookmarks-panel" id="bookmarksPanel">
+  <div class="bp-header">
+    <h3><i class="fas fa-bookmark" style="color:var(--accent2)"></i> Bookmarks</h3>
+    <button class="bp-close" onclick="toggleBookmarks()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="bp-list" id="bookmarksList"><div class="bp-empty"><i class="fas fa-bookmark" style="font-size:24px;opacity:0.3;display:block;margin-bottom:10px"></i>No bookmarks yet.<br>Click the <i class="fas fa-bookmark"></i> icon on any section header.</div></div>
+  <div class="bp-export"><button onclick="exportBookmarks()"><i class="fas fa-download"></i> Export as Text</button></div>
+</div>
+
+<!-- FLOATING NAV -->
+<nav class="float-nav" id="floatNav">
+  <a href="#hero" data-section="hero"><span class="nav-tip">Home</span></a>
+  <a href="#concepts" data-section="concepts"><span class="nav-tip">Concepts</span></a>
+  <a href="#analogy" data-section="analogy"><span class="nav-tip">Analogy</span></a>
+  <a href="#flow" data-section="flow"><span class="nav-tip">Architecture</span></a>
+  <a href="#auth" data-section="auth"><span class="nav-tip">Auth vs Authz</span></a>
+  <a href="#lifecycle" data-section="lifecycle"><span class="nav-tip">Lifecycle</span></a>
+  <a href="#roles" data-section="roles"><span class="nav-tip">Roles Ref</span></a>
+  <a href="#fields" data-section="fields"><span class="nav-tip">Table Fields</span></a>
+  <a href="#api" data-section="api"><span class="nav-tip">API Methods</span></a>
+  <a href="#tips" data-section="tips"><span class="nav-tip">Tips</span></a>
+  <a href="#practices" data-section="practices"><span class="nav-tip">Best Practices</span></a>
+  <a href="#quiz" data-section="quiz"><span class="nav-tip">Quiz</span></a>
+  <a href="#exercise" data-section="exercise"><span class="nav-tip">Exercise</span></a>
+  <a href="#related" data-section="related"><span class="nav-tip">Related</span></a>
+</nav>
+
+<!-- BACK TO TOP -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0})"><i class="fas fa-arrow-up"></i></button>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- HERO -->
+<!-- ═══════════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="hero-orb orb1"></div>
+  <div class="hero-orb orb2"></div>
+  <div class="hero-orb orb3"></div>
+  <div class="hero-badge"><span class="dot"></span>SN Xpert — Week 3</div>
+  <div class="hero-program">Pro ServiceNow Developer Weekend Mentorship Program</div>
+  <div class="presenter">
+    <div class="presenter-avatar">👨‍💻</div>
+    <div class="presenter-info">
+      <div class="presenter-name">Prasad Shelar</div>
+      <div class="presenter-title">ServiceNow Sr Developer & Mentor</div>
+    </div>
+  </div>
+  <h1>
+    <span class="line1">Administrator Level Setup</span>
+    <span class="line2">Users, Groups &amp; Roles</span>
+  </h1>
+  <p class="hero-sub">Master the foundation of ServiceNow security — understand how users, groups, and roles orchestrate access control across the entire platform.</p>
+  <div class="hero-chips">
+    <div class="chip">👤 Users</div>
+    <div class="chip">👥 Groups</div>
+    <div class="chip">🎭 Roles</div>
+    <div class="chip">🔐 RBAC</div>
+    <div class="chip">🛡 ACL Engine</div>
+    <div class="chip">⚙️ GlideUser API</div>
+    <div class="chip">🔄 Lifecycle</div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-num" data-target="6">0</div><div class="stat-label">Core Topics</div></div>
+    <div class="stat-item"><div class="stat-num purple" data-target="10">0</div><div class="stat-label">Pro Tips</div></div>
+    <div class="stat-item"><div class="stat-num green" data-target="7">0</div><div class="stat-label">Quiz Questions</div></div>
+    <div class="stat-item"><div class="stat-num warn" data-target="4">0</div><div class="stat-label">Lab Tiers</div></div>
+  </div>
+  <div class="hero-cta">
+    <button class="btn-primary" onclick="document.getElementById('concepts').scrollIntoView({behavior:'smooth'})"><i class="fas fa-play"></i> Start Learning</button>
+    <button class="btn-secondary" onclick="document.getElementById('quiz').scrollIntoView({behavior:'smooth'})"><i class="fas fa-brain"></i> Jump to Quiz</button>
+  </div>
+  <div class="scroll-cue"><span>SCROLL TO EXPLORE</span><div class="scroll-arrow"></div></div>
+</section>
+
+<!-- CONCEPTS -->
+<section id="concepts">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="tag">01 — Core Concepts</span>
+      <h2>The Security Pillars</h2>
+      <div class="line"></div>
+      <button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Core Concepts','#concepts')" title="Bookmark"><i class="far fa-bookmark"></i></button>
+    </div>
+    <div class="concept-grid">
+      <div class="concept-card card-user reveal"><div class="card-icon">👤</div><h3>Users</h3><p>A digital identity representing every person or service account interacting with ServiceNow.</p><div class="tag-list"><span class="tag-item">Employee</span><span class="tag-item">ITIL Agent</span><span class="tag-item">Manager</span><span class="tag-item">Service Acct</span></div><div class="card-table-name">sys_user</div></div>
+      <div class="concept-card card-group reveal"><div class="card-icon">👥</div><h3>Groups</h3><p>Collections of users who share common responsibilities. Enable bulk permission management and routing.</p><div class="tag-list"><span class="tag-item">Assignment</span><span class="tag-item">Approval</span><span class="tag-item">Notification</span><span class="tag-item">Nested</span></div><div class="card-table-name">sys_user_group</div></div>
+      <div class="concept-card card-role reveal"><div class="card-icon">🎭</div><h3>Roles</h3><p>Named permission sets controlling modules, tables, fields, records, and actions across the platform.</p><div class="tag-list"><span class="tag-item">Base</span><span class="tag-item">Application</span><span class="tag-item">Custom</span><span class="tag-item">Elevated</span></div><div class="card-table-name">sys_user_role</div></div>
+      <div class="concept-card card-acl reveal"><div class="card-icon">🛡</div><h3>ACL Rules</h3><p>The enforcement engine evaluating roles at runtime for every read, write, create, and delete operation.</p><div class="tag-list"><span class="tag-item">Table</span><span class="tag-item">Record</span><span class="tag-item">Field</span><span class="tag-item">Row-level</span></div><div class="card-table-name">sys_security_acl</div></div>
+      <div class="concept-card card-auth reveal"><div class="card-icon">🔑</div><h3>Authentication</h3><p>Verifies WHO you are — login process supporting LDAP, SAML SSO, OAuth 2.0, and MFA.</p><div class="tag-list"><span class="tag-item">LDAP</span><span class="tag-item">SAML</span><span class="tag-item">OAuth</span><span class="tag-item">MFA</span></div><div class="card-table-name">Identity Verification</div></div>
+      <div class="concept-card card-lifecycle reveal"><div class="card-icon">🔄</div><h3>User Lifecycle</h3><p>Complete journey from provisioning to offboarding. Never delete users — always deactivate.</p><div class="tag-list"><span class="tag-item">SCIM</span><span class="tag-item">LDAP Sync</span><span class="tag-item">Automation</span><span class="tag-item">Audit</span></div><div class="card-table-name">Lifecycle Mgmt</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ANALOGY -->
+<section id="analogy">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">02 — Real-World Analogy</span><h2>The Hospital Model</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Hospital Analogy','#analogy')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="analogy-section reveal">
+      <div class="analogy-title">🏥 Think of ServiceNow as a Hospital</div>
+      <div class="analogy-subtitle">Every security concept maps to something you already understand</div>
+      <div class="analogy-grid">
+        <div class="analogy-item"><div class="a-emoji">👤</div><div class="a-real">User</div><div class="a-label">A Person</div><div class="a-desc">Dr. Smith, Nurse Johnson — each has a unique identity</div></div>
+        <div class="analogy-item"><div class="a-emoji">👥</div><div class="a-real">Group</div><div class="a-label">Department</div><div class="a-desc">Surgery, Emergency, Radiology — people organized by function</div></div>
+        <div class="analogy-item"><div class="a-emoji">🎭</div><div class="a-real">Role</div><div class="a-label">Badge / Title</div><div class="a-desc">"Doctor" badge opens OR rooms; "Nurse" badge opens wards</div></div>
+        <div class="analogy-item"><div class="a-emoji">🛡</div><div class="a-real">ACL</div><div class="a-label">Locked Door</div><div class="a-desc">Card reader on each door — only certain badges can unlock it</div></div>
+        <div class="analogy-item"><div class="a-emoji">🔑</div><div class="a-real">Auth</div><div class="a-label">ID Check</div><div class="a-desc">Guard verifies your photo ID matches your face at the entrance</div></div>
+      </div>
+      <div class="analogy-flow">Users → belong to → Groups → have → Roles → unlock → ACLs → protect → Data</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FLOW -->
+<section id="flow">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">03 — Architecture</span><h2>Security Evaluation Flow</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Architecture Flow','#flow')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="flow-section reveal">
+      <div class="flow-diagram">
+        <div class="flow-node"><span class="fn-icon">🔑</span><span class="fn-label">Login</span><span class="fn-sub">Credentials / SSO</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><span class="fn-icon">✅</span><span class="fn-label">Authenticate</span><span class="fn-sub">Verify identity</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><span class="fn-icon">👤</span><span class="fn-label">Load User</span><span class="fn-sub">sys_user</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><span class="fn-icon">👥</span><span class="fn-label">Groups</span><span class="fn-sub">Memberships</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><span class="fn-icon">🎭</span><span class="fn-label">Roles</span><span class="fn-sub">Direct + Inherited</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><span class="fn-icon">🛡</span><span class="fn-label">ACL Check</span><span class="fn-sub">Evaluate rules</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><span class="fn-icon">✨</span><span class="fn-label">Result</span><span class="fn-sub">Grant / Deny</span></div>
+      </div>
+    </div>
+    <div class="spacer-md"></div>
+    <div class="hierarchy-vis reveal">
+      <div class="hier-title">📊 Role Inheritance & Effective Roles</div>
+      <div class="hier-grid">
+        <div>
+          <div class="hier-col-label">Role Contains Hierarchy</div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display:flex;align-items:center;gap:8px;"><span class="role-badge badge-admin">admin</span><span style="font-size:11px;color:var(--muted)">— bypasses ALL ACLs</span></div>
+            <div style="padding-left:20px;border-left:2px solid var(--border);margin-left:10px;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:center;gap:8px;"><span class="role-badge badge-itil">itil</span><span style="font-size:11px;color:var(--muted)">— ITSM fulfiller</span></div>
+              <div style="padding-left:20px;border-left:2px solid var(--border);margin-left:10px;">
+                <div style="display:flex;align-items:center;gap:8px;"><span class="role-badge badge-proc">snc_internal</span><span style="font-size:11px;color:var(--muted)">— basic employee</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="hier-col-label">Inheritance Example</div>
+          <div class="hier-tree-box">
+            <span style="color:var(--text);font-weight:600;">User: John Smith</span><br>
+            ├─ Direct: <span class="role-badge badge-proc" style="font-size:10px;">catalog_user</span><br>
+            ├─ Group "IT Support L2":<br>
+            │&nbsp;&nbsp;├─ <span class="role-badge badge-itil" style="font-size:10px;">itil</span> <span style="color:var(--accent);font-size:10px;">→ contains snc_internal</span><br>
+            │&nbsp;&nbsp;└─ <span class="role-badge badge-warn" style="font-size:10px;">incident_manager</span><br>
+            └─ <strong style="color:var(--accent3);">4 effective roles</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- AUTH vs AUTHZ -->
+<section id="auth">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">04 — Key Distinction</span><h2>Authentication vs Authorization</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Auth vs Authz','#auth')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="auth-compare reveal">
+      <div class="auth-card authn"><div class="auth-icon">🔑</div><h4>Authentication</h4><div class="auth-question">WHO are you?</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Verifies user identity — the login process.</p><ul class="auth-methods"><li>Local username + password</li><li>LDAP / Active Directory</li><li>SAML 2.0 SSO (Azure AD, Okta)</li><li>OAuth 2.0 tokens</li><li>Multi-Factor Authentication</li><li>Certificate-based (mTLS)</li></ul></div>
+      <div class="auth-vs"><span>VS</span></div>
+      <div class="auth-card authz"><div class="auth-icon">🛡</div><h4>Authorization</h4><div class="auth-question">WHAT can you do?</div><p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Determines permissions after identity is verified.</p><ul class="auth-methods"><li>ACLs (primary enforcement)</li><li>Roles (permission sets)</li><li>Business Rules (gs.hasRole)</li><li>UI Policies (field control)</li><li>Data Policies (server-side)</li><li>Domain Separation</li></ul></div>
+    </div>
+    <div class="alert-box alert-warn reveal">⚠️ <strong>Interview Tip:</strong> This distinction appears in every ServiceNow CSA exam and job interview. Auth = WHO. Authz = WHAT.</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- LIFECYCLE -->
+<section id="lifecycle">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">05 — User Lifecycle</span><h2>Onboarding to Offboarding</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'User Lifecycle','#lifecycle')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="lifecycle-wrap reveal">
+      <div style="position:relative;padding:20px 0;">
+        <div class="timeline-connector"></div>
+        <div class="timeline-track">
+          <div class="timeline-step"><div class="ts-dot dot-prov">📥</div><div class="ts-label">Provision</div><div class="ts-desc">LDAP / SCIM / Manual</div></div>
+          <div class="timeline-step"><div class="ts-dot dot-onboard">🎓</div><div class="ts-label">Onboard</div><div class="ts-desc">Assign roles, groups</div></div>
+          <div class="timeline-step"><div class="ts-dot dot-active">💼</div><div class="ts-label">Active Use</div><div class="ts-desc">Daily tasks, login</div></div>
+          <div class="timeline-step"><div class="ts-dot dot-change">🔄</div><div class="ts-label">Changes</div><div class="ts-desc">Transfers, promotions</div></div>
+          <div class="timeline-step"><div class="ts-dot dot-review">🔍</div><div class="ts-label">Review</div><div class="ts-desc">Audit, recertify</div></div>
+          <div class="timeline-step"><div class="ts-dot dot-off">🚪</div><div class="ts-label">Offboard</div><div class="ts-desc">Deactivate, reassign</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="alert-box alert-danger reveal">🚫 <strong>Critical:</strong> NEVER delete user records — set <code>active = false</code>. Deletion breaks audit trails, foreign keys, and compliance.</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ROLES TABLE -->
+<section id="roles">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">06 — Roles Reference</span><h2>Common ServiceNow Roles</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Roles Reference','#roles')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="table-wrap reveal">
+      <div class="table-filter">
+        <button class="filter-btn active" onclick="filterRoles('all',this)">All</button>
+        <button class="filter-btn" onclick="filterRoles('base',this)">Base</button>
+        <button class="filter-btn" onclick="filterRoles('elevated',this)">Elevated</button>
+        <button class="filter-btn" onclick="filterRoles('application',this)">Application</button>
+        <button class="filter-btn" onclick="filterRoles('custom',this)">Custom</button>
+      </div>
+      <table class="roles-table" id="rolesTable">
+        <thead><tr><th>Role</th><th>Category</th><th>Purpose</th><th>Key Note</th></tr></thead>
+        <tbody>
+          <tr data-cat="base"><td><span class="role-badge badge-admin">admin</span></td><td>Base</td><td>Full platform access — bypasses all ACLs</td><td>Limit to &lt;5 in prod</td></tr>
+          <tr data-cat="base"><td><span class="role-badge badge-itil">itil</span></td><td>Base</td><td>ITSM fulfiller — incidents, changes</td><td>Contains snc_internal</td></tr>
+          <tr data-cat="base"><td><span class="role-badge badge-proc">snc_internal</span></td><td>Base</td><td>Internal employee — self-service access</td><td>Base for all employees</td></tr>
+          <tr data-cat="base"><td><span class="role-badge badge-pink">snc_external</span></td><td>Base</td><td>External user — vendor/customer portal</td><td>Non-employees only</td></tr>
+          <tr data-cat="elevated"><td><span class="role-badge badge-hr">security_admin</span></td><td>Elevated</td><td>Manage ACLs and security rules</td><td>Requires elevation</td></tr>
+          <tr data-cat="elevated"><td><span class="role-badge badge-warn">impersonator</span></td><td>Elevated</td><td>Impersonate other users for testing</td><td>All actions logged</td></tr>
+          <tr data-cat="application"><td><span class="role-badge badge-hr">sn_hr_core.basic</span></td><td>Application</td><td>HR Service Delivery access</td><td>Scoped to HR module</td></tr>
+          <tr data-cat="application"><td><span class="role-badge badge-itil">catalog_admin</span></td><td>Application</td><td>Service Catalog administration</td><td>Contains catalog_manager</td></tr>
+          <tr data-cat="custom"><td><span class="role-badge badge-proc">x_myapp.user</span></td><td>Custom</td><td>Custom application user role</td><td>Prefix with app scope</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TABLE FIELDS -->
+<section id="fields">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">07 — Table Reference</span><h2>Key Fields & Configurations</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Table Fields','#fields')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="accordion reveal">
+      <div class="accordion-item open" id="acc-user">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-user')"><span class="acc-left"><span class="acc-icon">👤</span> sys_user — User Table <span class="acc-badge">25+ fields</span></span><span class="acc-arrow">▼</span></button>
+        <div class="accordion-body"><div class="accordion-content"><div class="field-grid">
+          <div class="field-chip"><div><div class="fc-name">user_name</div><div class="fc-type">String — Unique login ID</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">first_name / last_name</div><div class="fc-type">String — Display name</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">email</div><div class="fc-type">Email — Primary email</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">active</div><div class="fc-type">Boolean — Account active?</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">locked_out</div><div class="fc-type">Boolean — Locked status</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">manager</div><div class="fc-type">Ref → sys_user</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">department</div><div class="fc-type">Ref → cmn_department</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">company</div><div class="fc-type">Ref → core_company</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">location</div><div class="fc-type">Ref → cmn_location</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">vip</div><div class="fc-type">Boolean — VIP flag</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">roles</div><div class="fc-type">List — Direct roles</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">last_login_time</div><div class="fc-type">DateTime — Last login</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">source</div><div class="fc-type">String — LDAP / SAML</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">web_service_access_only</div><div class="fc-type">Boolean — API only</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">enable_multifactor_authn</div><div class="fc-type">Boolean — MFA</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">time_zone</div><div class="fc-type">String — Timezone</div></div></div>
+        </div></div></div>
+      </div>
+      <div class="accordion-item" id="acc-group">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-group')"><span class="acc-left"><span class="acc-icon">👥</span> sys_user_group — Group Table <span class="acc-badge">12+ fields</span></span><span class="acc-arrow">▼</span></button>
+        <div class="accordion-body"><div class="accordion-content"><div class="field-grid">
+          <div class="field-chip"><div><div class="fc-name">name</div><div class="fc-type">String — Group name</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">manager</div><div class="fc-type">Ref → sys_user</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">email</div><div class="fc-type">Email — Group email</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">active</div><div class="fc-type">Boolean — Active?</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">parent</div><div class="fc-type">Ref → sys_user_group</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">default_assignee</div><div class="fc-type">Ref → sys_user</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">include_members</div><div class="fc-type">Boolean — Include children</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">roles</div><div class="fc-type">List — Assigned roles</div></div></div>
+        </div></div></div>
+      </div>
+      <div class="accordion-item" id="acc-role">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-role')"><span class="acc-left"><span class="acc-icon">🎭</span> sys_user_role — Role Table <span class="acc-badge">8+ fields</span></span><span class="acc-arrow">▼</span></button>
+        <div class="accordion-body"><div class="accordion-content"><div class="field-grid">
+          <div class="field-chip"><div><div class="fc-name">name</div><div class="fc-type">String — Role name</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">suffix</div><div class="fc-type">String — admin, user</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">description</div><div class="fc-type">String — What it grants</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">application</div><div class="fc-type">Ref → sys_scope</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">elevated_privilege</div><div class="fc-type">Boolean — Requires elevation</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">assignable_by</div><div class="fc-type">Ref → sys_user_role</div></div></div>
+        </div></div></div>
+      </div>
+      <div class="accordion-item" id="acc-rel">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-rel')"><span class="acc-left"><span class="acc-icon">🔗</span> Relationship Tables <span class="acc-badge">4 tables</span></span><span class="acc-arrow">▼</span></button>
+        <div class="accordion-body"><div class="accordion-content"><div class="field-grid">
+          <div class="field-chip"><div><div class="fc-name">sys_user_grmember</div><div class="fc-type">Users ↔ Groups</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">sys_user_has_role</div><div class="fc-type">Roles → Users/Groups</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">sys_group_has_role</div><div class="fc-type">Roles → Groups</div></div></div>
+          <div class="field-chip"><div><div class="fc-name">sys_user_role_contains</div><div class="fc-type">Role hierarchy</div></div></div>
+        </div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- API -->
+<section id="api">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">08 — GlideUser API</span><h2>Key API Methods</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'API Methods','#api')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="tab-container reveal">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab(event,'tab-server')">Server-Side (gs)</button>
+        <button class="tab-btn" onclick="switchTab(event,'tab-client')">Client-Side (g_user)</button>
+        <button class="tab-btn" onclick="switchTab(event,'tab-gliderecord')">GlideRecord</button>
+      </div>
+      <div class="tab-panel active" id="tab-server">
+        <div class="api-grid">
+          <div class="api-card"><div class="api-card-header"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span>user-info.js</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div><pre><span class="cm">// Get current user details</span>
+<span class="kw">var</span> userId   = gs.<span class="fn">getUserID</span>();
+<span class="kw">var</span> userName = gs.<span class="fn">getUserName</span>();
+<span class="kw">var</span> display  = gs.<span class="fn">getUserDisplayName</span>();
+
+<span class="cm">// GlideUser object</span>
+<span class="kw">var</span> user = gs.<span class="fn">getUser</span>();
+gs.<span class="fn">info</span>(user.<span class="fn">getEmail</span>());
+gs.<span class="fn">info</span>(user.<span class="fn">getManagerID</span>());
+gs.<span class="fn">info</span>(user.<span class="fn">getDepartmentID</span>());</pre></div>
+          <div class="api-card"><div class="api-card-header"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span>check-roles.js</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div><pre><span class="cm">// Check role</span>
+<span class="kw">if</span> (gs.<span class="fn">hasRole</span>(<span class="str">'itil'</span>)) {
+  gs.<span class="fn">info</span>(<span class="str">'Has ITIL access'</span>);
+}
+
+<span class="cm">// Check group membership</span>
+<span class="kw">var</span> inGroup = gs.<span class="fn">getUser</span>().<span class="fn">isMemberOf</span>(
+  <span class="str">'IT Support L2'</span>
+);
+
+<span class="cm">// Get all user's groups</span>
+<span class="kw">var</span> groups = gs.<span class="fn">getUser</span>().<span class="fn">getMyGroups</span>();</pre></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-client">
+        <div class="api-grid">
+          <div class="api-card"><div class="api-card-header"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span>client-api.js</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div><pre><span class="cm">// ⚠️ Client-side = UI only, NOT secure</span>
+<span class="kw">var</span> name = g_user.<span class="fn">userName</span>;
+<span class="kw">var</span> id   = g_user.<span class="fn">userID</span>;
+
+<span class="cm">// Role check (admin = true for ALL)</span>
+g_user.<span class="fn">hasRole</span>(<span class="str">'itil'</span>);
+
+<span class="cm">// Exact check (excludes admin)</span>
+g_user.<span class="fn">hasRoleExactly</span>(<span class="str">'itil'</span>);
+
+<span class="cm">// Check from list</span>
+g_user.<span class="fn">hasRoleFromList</span>(<span class="str">'itil,admin'</span>);</pre></div>
+          <div class="api-card"><div class="api-card-header"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span>client-pattern.js</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div><pre><span class="cm">// Role-based UI control pattern</span>
+<span class="kw">function</span> <span class="fn">onLoad</span>() {
+  <span class="kw">if</span> (g_user.<span class="fn">hasRole</span>(<span class="str">'itil'</span>)) {
+    g_form.<span class="fn">setSectionDisplay</span>(
+      <span class="str">'technical'</span>, <span class="kw">true</span>
+    );
+  } <span class="kw">else</span> {
+    g_form.<span class="fn">setSectionDisplay</span>(
+      <span class="str">'technical'</span>, <span class="kw">false</span>
+    );
+  }
+}</pre></div>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-gliderecord">
+        <div class="api-grid">
+          <div class="api-card"><div class="api-card-header"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span>query-users.js</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div><pre><span class="cm">// Find user by username</span>
+<span class="kw">var</span> gr = <span class="kw">new</span> <span class="fn">GlideRecord</span>(<span class="str">'sys_user'</span>);
+gr.<span class="fn">addQuery</span>(<span class="str">'user_name'</span>, <span class="str">'john.smith'</span>);
+gr.<span class="fn">query</span>();
+<span class="kw">if</span> (gr.<span class="fn">next</span>()) {
+  gs.<span class="fn">info</span>(gr.<span class="fn">getValue</span>(<span class="str">'email'</span>));
+}</pre></div>
+          <div class="api-card"><div class="api-card-header"><div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div><span>query-groups-roles.js</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div><pre><span class="cm">// Get all members of a group</span>
+<span class="kw">var</span> gm = <span class="kw">new</span> <span class="fn">GlideRecord</span>(<span class="str">'sys_user_grmember'</span>);
+gm.<span class="fn">addQuery</span>(<span class="str">'group.name'</span>, <span class="str">'IT Support'</span>);
+gm.<span class="fn">query</span>();
+<span class="kw">while</span> (gm.<span class="fn">next</span>()) {
+  gs.<span class="fn">info</span>(gm.<span class="fn">getDisplayValue</span>(<span class="str">'user'</span>));
+}</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TIPS -->
+<section id="tips">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">09 — Insider Knowledge</span><h2>Pro Developer Tips</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Pro Tips','#tips')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="tips-grid">
+      <div class="tip-card reveal"><div class="tip-num">01</div><div><h4>Groups Over Direct Assignment</h4><p>Always assign roles to groups. Managing 500 individual role assignments is a nightmare. One group change handles all.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">02</div><div><h4>hasRoleExactly() for Precision</h4><p><span class="mono-sm">g_user.hasRole('itil')</span> returns true for admins. Use <span class="mono-sm">hasRoleExactly()</span> to exclude admin users.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">03</div><div><h4>Security Diagnostics Page</h4><p>Navigate to <span class="mono-sm">sys_security_acl_debug.do</span> — test ACL evaluation for any user. Shows exactly which rule grants or denies.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">04</div><div><h4>Impersonate, Don't Re-Login</h4><p>Test access via avatar → "Impersonate User." All actions are logged. Much faster than logging out and back in.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">05</div><div><h4>Debug sys_user_has_role</h4><p>When access fails — check this table first. Filter by user, add <span class="mono-sm">inherited</span> and <span class="mono-sm">granted_by</span> columns.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">06</div><div><h4>Elevated Privileges Safety Net</h4><p>Keep <span class="mono-sm">security_admin</span> elevated. Admins must explicitly activate it each session.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">07</div><div><h4>Use isMemberOf() Built-in</h4><p>Don't query <span class="mono-sm">sys_user_grmember</span> manually. Use <span class="mono-sm">gs.getUser().isMemberOf()</span> — one line, faster.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">08</div><div><h4>Module Visibility = Roles</h4><p>Navigation modules check roles. No <span class="mono-sm">itil</span>? No Incident module. Check Application Menus. CSA exam favorite!</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">09</div><div><h4>Before Query for Row Security</h4><p>Need "managers see only their team's data"? Use Before Query Business Rule with <span class="mono-sm">current.addQuery()</span>.</p></div></div>
+      <div class="tip-card reveal"><div class="tip-num">10</div><div><h4>Scoped App Role Naming</h4><p>Always prefix custom roles: <span class="mono-sm">x_company.app_name.role</span>. Never use generic names in Global scope.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DO/DONT -->
+<section id="practices">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">10 — Best Practices</span><h2>Do's &amp; Don'ts</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Best Practices','#practices')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="dos-donts">
+      <div class="do-box reveal">
+        <h3>✅ Best Practices</h3>
+        <div class="practice-item"><span class="icon">✅</span><p>Assign roles to <strong>groups</strong>, not individual users</p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Follow naming: <span class="mono-sm">x_scope.app.role</span></p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Apply <strong>Least Privilege</strong> — minimum access needed</p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Enforce security server-side with <strong>ACLs</strong></p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Test via <strong>Impersonate User</strong></p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Use <strong>role hierarchy</strong> (contains)</p></div>
+        <div class="practice-item"><span class="icon">✅</span><p><strong>Deactivate</strong> users — never delete</p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Document every custom role's purpose</p></div>
+        <div class="practice-item"><span class="icon">✅</span><p>Audit access <strong>quarterly</strong></p></div>
+      </div>
+      <div class="dont-box reveal">
+        <h3>❌ Common Mistakes</h3>
+        <div class="practice-item"><span class="icon">❌</span><p>Giving everyone <span class="mono-sm">admin</span></p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Client-side role checks as security</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Roles directly to users (not groups)</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Deleting user records</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Too many granular roles (explosion)</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Testing only as admin</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Empty group manager field</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Hardcoded role names in scripts</p></div>
+        <div class="practice-item"><span class="icon">❌</span><p>Disabling strict elevation in prod</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- QUIZ -->
+<section id="quiz">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">11 — Knowledge Check</span><h2>Test Yourself</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Quiz','#quiz')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="quiz-header reveal">
+      <div class="quiz-score"><div><div class="quiz-score-num" id="quizScoreNum">0/7</div><div class="quiz-score-label">Score</div><div class="quiz-progress"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div></div></div></div>
+      <button class="quiz-reset" onclick="resetQuiz()"><i class="fas fa-redo"></i> RESET QUIZ</button>
+    </div>
+    <div class="quiz-grid">
+      <div class="quiz-card reveal" id="q1"><div class="q-num">Question 01 <span class="q-difficulty q-easy">Easy</span></div><div class="q-text">Which table stores user records in ServiceNow?</div><div class="quiz-options" data-answer="0"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> sys_user</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> sys_user_role</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">C</span> sys_user_group</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">D</span> cmn_user</div></div><div class="q-explanation" id="q1-exp"><strong>✅ A — sys_user</strong> is the core table for all user records. sys_user_role stores role definitions. cmn_user doesn't exist in ServiceNow.</div></div>
+      <div class="quiz-card reveal" id="q2"><div class="q-num">Question 02 <span class="q-difficulty q-easy">Easy</span></div><div class="q-text">Authentication verifies ___, Authorization determines ___.</div><div class="quiz-options" data-answer="1"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> access, identity</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> identity, access</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">C</span> same thing</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">D</span> client-side, server-side</div></div><div class="q-explanation" id="q2-exp"><strong>✅ B</strong> — Authentication = WHO (identity). Authorization = WHAT (permissions). Classic interview question!</div></div>
+      <div class="quiz-card reveal" id="q3"><div class="q-num">Question 03 <span class="q-difficulty q-medium">Medium</span></div><div class="q-text">True or False: Roles assigned to a group are inherited by all members.</div><div class="quiz-options" data-answer="0"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> True</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> False</div></div><div class="q-explanation" id="q3-exp"><strong>✅ True</strong> — Core role inheritance mechanism. Check sys_user_has_role where inherited = true.</div></div>
+      <div class="quiz-card reveal" id="q4"><div class="q-num">Question 04 <span class="q-difficulty q-medium">Medium</span></div><div class="q-text">Admin user runs g_user.hasRole('itil'). What's returned?</div><div class="quiz-options" data-answer="1"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> false</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> true</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">C</span> Error</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">D</span> Depends</div></div><div class="q-explanation" id="q4-exp"><strong>✅ B (true)</strong> — admin passes ALL role checks. Use hasRoleExactly() to exclude admin override.</div></div>
+      <div class="quiz-card reveal" id="q5"><div class="q-num">Question 05 <span class="q-difficulty q-medium">Medium</span></div><div class="q-text">Which is NOT a valid ACL operation?</div><div class="quiz-options" data-answer="3"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> read</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> write</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">C</span> execute</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">D</span> modify</div></div><div class="q-explanation" id="q5-exp"><strong>✅ D (modify)</strong> — Valid: read, write, create, delete, execute. Updates use "write", not "modify".</div></div>
+      <div class="quiz-card reveal" id="q6"><div class="q-num">Question 06 <span class="q-difficulty q-easy">Easy</span></div><div class="q-text">True or False: Delete user records when employees leave.</div><div class="quiz-options" data-answer="1"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> True</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> False</div></div><div class="q-explanation" id="q6-exp"><strong>✅ False</strong> — NEVER delete. Set active=false. Deletion breaks audit trails and compliance.</div></div>
+      <div class="quiz-card reveal" id="q7"><div class="q-num">Question 07 <span class="q-difficulty q-hard">Hard</span></div><div class="q-text">Sarah sees the Incident module but gets "Access Denied" on records. She has itil via group. Most likely cause?</div><div class="quiz-options" data-answer="2"><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">A</span> Inactive account</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">B</span> Expired role</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">C</span> Record/field-level ACL denying</div><div class="quiz-option" onclick="answerQuiz(this)"><span class="opt-key">D</span> Needs to elevate itil</div></div><div class="q-explanation" id="q7-exp"><strong>✅ C</strong> — Table ACL passes (sees module) but record/field ACL denies. Use sys_security_acl_debug.do to diagnose.</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- EXERCISE -->
+<section id="exercise">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">12 — Hands-On Lab</span><h2>Practical Exercise</h2><div class="line"></div><button class="bookmark-section-btn" onclick="toggleBookmarkSection(this,'Exercise Lab','#exercise')" title="Bookmark"><i class="far fa-bookmark"></i></button></div>
+    <div class="exercise-box reveal">
+      <div class="exercise-header"><h3>🏢 TechCorp IT Access Management</h3><p>Build a complete access control system from scratch on your PDI — by Prasad Shelar</p></div>
+      <div class="exercise-scenario"><p>"You are a ServiceNow developer at TechCorp. Your IT Security Manager says: <em>'We failed our audit. Users have wrong roles, ex-employees are still active. Fix it — build it right.'</em>"</p></div>
+      <div class="exercise-tiers">
+        <div class="tier">
+          <span class="tier-badge bronze">🥉 Bronze</span>
+          <ul><li>Create 4 groups (IT Helpdesk, IT Infra, HR Ops, Finance)</li><li>Create 5 custom roles with naming conventions</li><li>Set up role hierarchy (contains)</li><li>Create 8 test users across departments</li><li>Assign roles → groups → users</li><li>Verify with impersonation</li></ul>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:5px;">
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Groups with managers</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Roles with hierarchy</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Users assigned</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Impersonation tested</label>
+          </div>
+        </div>
+        <div class="tier">
+          <span class="tier-badge silver">🥈 Silver</span>
+          <ul><li>Create 2 ACL rules (table + field level)</li><li>Before Query BR for row-level security</li><li>UI Policy with role-based visibility</li><li>"User Count by Group" report</li><li>New member notification</li></ul>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:5px;">
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> ACLs working</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Before Query BR</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Report created</label>
+          </div>
+        </div>
+        <div class="tier">
+          <span class="tier-badge gold">🥇 Gold</span>
+          <ul><li>UserLifecycleManager Script Include</li><li>Auto-assign groups on dept change</li><li>Deactivation cleanup flow</li><li>Handle edge cases</li><li>Access review dashboard</li></ul>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:5px;">
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Lifecycle automation</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Edge cases handled</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Dashboard built</label>
+          </div>
+        </div>
+        <div class="tier">
+          <span class="tier-badge bonus-badge">⭐ Bonus</span>
+          <ul><li>Scheduled Job: stale user finder</li><li>Separation of Duties checker</li><li>Access Review catalog item</li><li>Package in Scoped App</li><li>Share your solution!</li></ul>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:5px;">
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Scheduled job</label>
+            <label class="tier-check"><input type="checkbox" onchange="updateExerciseProgress()"> Scoped app</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="alert-box alert-info reveal" style="margin-top:16px;">📊 Exercise Progress: <strong><span id="exerciseProgress">0</span>/<span id="exerciseTotal">0</span></strong> tasks completed</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- RELATED -->
+<section id="related">
+  <div class="container">
+    <div class="section-header reveal"><span class="tag">13 — What's Next</span><h2>Related Topics & Learning Path</h2><div class="line"></div></div>
+    <div class="related-grid reveal">
+      <div class="related-card"><div class="rc-icon">🛡</div><div><div class="rc-text">ACLs</div><div class="rc-sub">How roles enforce access</div></div></div>
+      <div class="related-card"><div class="rc-icon">⚙️</div><div><div class="rc-text">Business Rules</div><div class="rc-sub">Server-side role checks</div></div></div>
+      <div class="related-card"><div class="rc-icon">📋</div><div><div class="rc-text">Client Scripts</div><div class="rc-sub">Client-side behavior</div></div></div>
+      <div class="related-card"><div class="rc-icon">🔌</div><div><div class="rc-text">LDAP Integration</div><div class="rc-sub">Automated user sync</div></div></div>
+      <div class="related-card"><div class="rc-icon">🔐</div><div><div class="rc-text">SSO / SAML</div><div class="rc-sub">Enterprise auth</div></div></div>
+      <div class="related-card"><div class="rc-icon">🌐</div><div><div class="rc-text">Domain Separation</div><div class="rc-sub">Multi-tenant access</div></div></div>
+      <div class="related-card"><div class="rc-icon">📊</div><div><div class="rc-text">Service Portal</div><div class="rc-sub">Role-based portal</div></div></div>
+      <div class="related-card"><div class="rc-icon">📦</div><div><div class="rc-text">Scoped Apps</div><div class="rc-sub">App-level roles</div></div></div>
+    </div>
+    <div style="margin-top:32px;" class="reveal">
+      <div class="lp-label">📍 Your Learning Journey</div>
+      <div class="lp-track">
+        <div class="lp-item">Platform Basics</div><span class="lp-arrow">→</span>
+        <div class="lp-item">Tables & Records</div><span class="lp-arrow">→</span>
+        <div class="lp-item current">✦ Users, Groups, Roles</div><span class="lp-arrow">→</span>
+        <div class="lp-item">ACLs</div><span class="lp-arrow">→</span>
+        <div class="lp-item">Business Rules</div><span class="lp-arrow">→</span>
+        <div class="lp-item">Client Scripts</div><span class="lp-arrow">→</span>
+        <div class="lp-item">Script Includes</div><span class="lp-arrow">→</span>
+        <div class="lp-item">Flow Designer</div>
+      </div>
+    </div>
+    <div style="margin-top:28px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;" class="reveal">
+      <div style="font-size:2rem;">🎯</div>
+      <div style="flex:1;min-width:200px;"><div style="font-weight:700;font-size:14px;margin-bottom:3px;">Next Video: Access Control Lists (ACLs)</div><div style="font-size:12px;color:var(--muted);">Now that you understand roles, learn how ACLs enforce security at table, record, and field level.</div></div>
+      <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);padding:8px 16px;border-radius:8px;">COMING SOON</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p style="font-size:22px;margin-bottom:8px;">🎓</p>
+  <p><strong>Pro ServiceNow Developer Weekend Mentorship Program</strong></p>
+  <p style="margin-top:6px;">Week 3 — Administrator Level Setup | <strong>Users, Groups & Roles</strong></p>
+  <p style="margin-top:6px;">Presented by <strong>Prasad Shelar</strong> — ServiceNow Sr Developer & Mentor</p>
+  <div class="footer-links">
+    <a href="#">📺 YouTube</a><a href="#">💬 Discord</a><a href="#">📧 Newsletter</a><a href="#">🎯 Full Curriculum</a>
+  </div>
+  <div class="footer-brand">SN Xpert</div>
+  <p style="margin-top:12px;font-size:11px;">Every expert was once a beginner. Keep learning, keep building. 🚀</p>
+  <p style="margin-top:8px;font-size:10px;color:var(--muted);">Keyboard shortcuts: <kbd class="kbd">Ctrl+K</kbd> Search · <kbd class="kbd">Ctrl+D</kbd> Theme · <kbd class="kbd">Ctrl+N</kbd> Notes · <kbd class="kbd">↑</kbd> Top</p>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+// REVEAL ON SCROLL
+// ═══════════════════════════════════════════
+const reveals = document.querySelectorAll('.reveal');
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 40);
+      revealObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.06 });
+reveals.forEach(r => revealObserver.observe(r));
+
+// ═══════════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════════
+window.addEventListener('scroll', () => {
+  const t = document.documentElement.scrollHeight - window.innerHeight;
+  document.getElementById('progressBar').style.width = (window.scrollY / t * 100) + '%';
+  document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 500);
+});
+
+// ═══════════════════════════════════════════
+// FLOATING NAV
+// ═══════════════════════════════════════════
+const secs = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.float-nav a');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  secs.forEach(s => { if (window.scrollY >= s.offsetTop - 200) cur = s.id; });
+  navLinks.forEach(l => { l.classList.toggle('active', l.dataset.section === cur); });
+});
+
+// ═══════════════════════════════════════════
+// STAT COUNTER
+// ═══════════════════════════════════════════
+let statDone = false;
+const statsObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting && !statDone) {
+      statDone = true;
+      document.querySelectorAll('.stat-num[data-target]').forEach(el => {
+        const target = +el.dataset.target; let c = 0;
+        const iv = setInterval(() => { c++; if (c >= target) { c = target; clearInterval(iv); } el.textContent = c; }, 60);
+      });
+    }
+  });
+}, { threshold: 0.5 });
+const sb = document.querySelector('.stats-bar');
+if (sb) statsObs.observe(sb);
+
+// ═══════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════
+function toggleTheme() {
+  const isDark = !document.body.hasAttribute('data-theme');
+  if (isDark) { document.body.setAttribute('data-theme','light'); document.getElementById('themeIcon').className = 'fas fa-sun'; }
+  else { document.body.removeAttribute('data-theme'); document.getElementById('themeIcon').className = 'fas fa-moon'; }
+  localStorage.setItem('sn-theme', isDark ? 'light' : 'dark');
+  showToast(isDark ? '☀️' : '🌙', isDark ? 'Light mode activated' : 'Dark mode activated');
+}
+document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+if (localStorage.getItem('sn-theme') === 'light') { document.body.setAttribute('data-theme','light'); document.getElementById('themeIcon').className = 'fas fa-sun'; }
+
+// ═══════════════════════════════════════════
+// FONT SIZE
+// ═══════════════════════════════════════════
+let fontSize = parseInt(localStorage.getItem('sn-font') || '15');
+document.body.style.fontSize = fontSize + 'px';
+document.getElementById('fontUpBtn').addEventListener('click', () => { if (fontSize < 22) { fontSize += 1; document.body.style.fontSize = fontSize + 'px'; localStorage.setItem('sn-font', fontSize); showToast('🔤', 'Font size: ' + fontSize + 'px'); }});
+document.getElementById('fontDownBtn').addEventListener('click', () => { if (fontSize > 12) { fontSize -= 1; document.body.style.fontSize = fontSize + 'px'; localStorage.setItem('sn-font', fontSize); showToast('🔤', 'Font size: ' + fontSize + 'px'); }});
+
+// ═══════════════════════════════════════════
+// PRINT
+// ═══════════════════════════════════════════
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+// ═══════════════════════════════════════════
+// ACCORDION
+// ═══════════════════════════════════════════
+function toggleAccordion(id) {
+  const item = document.getElementById(id);
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.accordion-item').forEach(a => a.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+// ═══════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════
+function switchTab(e, tabId) {
+  const c = e.target.closest('.tab-container');
+  c.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  c.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// COPY CODE
+// ═══════════════════════════════════════════
+function copyCode(btn) {
+  const pre = btn.closest('.api-card').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => {
+    btn.textContent = '✓ COPIED'; btn.classList.add('copied');
+    showToast('📋', 'Code copied to clipboard');
+    setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ═══════════════════════════════════════════
+// ROLE TABLE FILTER
+// ═══════════════════════════════════════════
+function filterRoles(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#rolesTable tbody tr').forEach(tr => {
+    tr.style.display = (cat === 'all' || tr.dataset.cat === cat) ? '' : 'none';
+  });
+}
+
+// ═══════════════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════════════
+let quizScore = 0, quizAnswered = 0; const totalQ = 7;
+function answerQuiz(opt) {
+  const card = opt.closest('.quiz-card');
+  if (card.classList.contains('answered')) return;
+  const opts = card.querySelectorAll('.quiz-option');
+  const correct = +card.querySelector('.quiz-options').dataset.answer;
+  const selected = Array.from(opts).indexOf(opt);
+  card.classList.add('answered'); quizAnswered++;
+  opts.forEach((o, i) => { if (i === correct) o.classList.add('correct'); else if (i === selected) o.classList.add('wrong'); });
+  if (selected === correct) { quizScore++; card.classList.add('answered-correct'); } else { card.classList.add('answered-wrong'); }
+  const exp = document.getElementById(card.id + '-exp');
+  if (exp) exp.classList.add('show');
+  document.getElementById('quizScoreNum').textContent = quizScore + '/' + totalQ;
+  document.getElementById('quizProgressFill').style.width = (quizAnswered / totalQ * 100) + '%';
+  if (quizAnswered === totalQ) showToast('🎯', `Quiz complete! Score: ${quizScore}/${totalQ}`);
+}
+function resetQuiz() {
+  quizScore = 0; quizAnswered = 0;
+  document.getElementById('quizScoreNum').textContent = '0/' + totalQ;
+  document.getElementById('quizProgressFill').style.width = '0%';
+  document.querySelectorAll('.quiz-card').forEach(c => {
+    c.classList.remove('answered','answered-correct','answered-wrong');
+    c.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('correct','wrong'));
+    const exp = document.getElementById(c.id + '-exp'); if (exp) exp.classList.remove('show');
+  });
+  showToast('🔄', 'Quiz reset');
+}
+
+// ═══════════════════════════════════════════
+// EXERCISE PROGRESS
+// ═══════════════════════════════════════════
+function updateExerciseProgress() {
+  const checks = document.querySelectorAll('.tier-check input[type="checkbox"]');
+  const done = Array.from(checks).filter(c => c.checked).length;
+  document.getElementById('exerciseProgress').textContent = done;
+  document.getElementById('exerciseTotal').textContent = checks.length;
+  localStorage.setItem('sn-exercise', JSON.stringify(Array.from(checks).map(c => c.checked)));
+  if (done === checks.length) showToast('🏆', 'All exercise tasks completed! Amazing work!');
+}
+(function loadExercise() {
+  const saved = JSON.parse(localStorage.getItem('sn-exercise') || '[]');
+  const checks = document.querySelectorAll('.tier-check input[type="checkbox"]');
+  saved.forEach((v, i) => { if (checks[i]) checks[i].checked = v; });
+  document.getElementById('exerciseTotal').textContent = checks.length;
+  document.getElementById('exerciseProgress').textContent = saved.filter(Boolean).length;
+})();
+
+// ═══════════════════════════════════════════
+// TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════
+function showToast(icon, msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span class="toast-icon">${icon}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ═══════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════
+const searchData = [
+  { text: 'Users — sys_user table', section: 'Core Concepts', href: '#concepts', icon: '👤' },
+  { text: 'Groups — sys_user_group table', section: 'Core Concepts', href: '#concepts', icon: '👥' },
+  { text: 'Roles — sys_user_role table', section: 'Core Concepts', href: '#concepts', icon: '🎭' },
+  { text: 'ACL Rules — Access Control Lists', section: 'Core Concepts', href: '#concepts', icon: '🛡' },
+  { text: 'Authentication vs Authorization', section: 'Key Distinction', href: '#auth', icon: '🔑' },
+  { text: 'Hospital Analogy', section: 'Real-World Analogy', href: '#analogy', icon: '🏥' },
+  { text: 'Security Evaluation Flow', section: 'Architecture', href: '#flow', icon: '🔄' },
+  { text: 'Role Inheritance Hierarchy', section: 'Architecture', href: '#flow', icon: '📊' },
+  { text: 'User Lifecycle Management', section: 'Lifecycle', href: '#lifecycle', icon: '🔄' },
+  { text: 'admin role', section: 'Roles Reference', href: '#roles', icon: '🎭' },
+  { text: 'itil role — ITSM fulfiller', section: 'Roles Reference', href: '#roles', icon: '🎭' },
+  { text: 'security_admin — elevated role', section: 'Roles Reference', href: '#roles', icon: '🎭' },
+  { text: 'snc_internal — employee role', section: 'Roles Reference', href: '#roles', icon: '🎭' },
+  { text: 'sys_user fields — user_name, email, active', section: 'Table Fields', href: '#fields', icon: '📋' },
+  { text: 'sys_user_group fields — name, manager', section: 'Table Fields', href: '#fields', icon: '📋' },
+  { text: 'sys_user_has_role relationship table', section: 'Table Fields', href: '#fields', icon: '🔗' },
+  { text: 'gs.getUserID() — server-side API', section: 'API Methods', href: '#api', icon: '⚙️' },
+  { text: 'gs.hasRole() — check user role', section: 'API Methods', href: '#api', icon: '⚙️' },
+  { text: 'gs.getUser().isMemberOf() — group check', section: 'API Methods', href: '#api', icon: '⚙️' },
+  { text: 'g_user.hasRole() — client-side', section: 'API Methods', href: '#api', icon: '⚙️' },
+  { text: 'g_user.hasRoleExactly() — exclude admin', section: 'API Methods', href: '#api', icon: '⚙️' },
+  { text: 'GlideRecord query sys_user', section: 'API Methods', href: '#api', icon: '⚙️' },
+  { text: 'Groups over direct assignment tip', section: 'Pro Tips', href: '#tips', icon: '💡' },
+  { text: 'Security Diagnostics debug page', section: 'Pro Tips', href: '#tips', icon: '💡' },
+  { text: 'Impersonate User for testing', section: 'Pro Tips', href: '#tips', icon: '💡' },
+  { text: 'Never delete users — deactivate', section: 'Best Practices', href: '#practices', icon: '✅' },
+  { text: 'Principle of Least Privilege', section: 'Best Practices', href: '#practices', icon: '✅' },
+  { text: 'Quiz — test yourself', section: 'Knowledge Check', href: '#quiz', icon: '❓' },
+  { text: 'Practical Exercise — TechCorp Lab', section: 'Hands-On Lab', href: '#exercise', icon: '🏋️' },
+  { text: 'LDAP / SCIM provisioning', section: 'Lifecycle', href: '#lifecycle', icon: '📥' },
+  { text: 'Prasad Shelar — Presenter', section: 'About', href: '#hero', icon: '👨‍💻' },
+];
+
+const searchOverlay = document.getElementById('searchOverlay');
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+function openSearch() { searchOverlay.classList.add('open'); searchInput.focus(); searchInput.value = ''; searchResults.innerHTML = ''; }
+function closeSearch() { searchOverlay.classList.remove('open'); }
+document.getElementById('searchBtn').addEventListener('click', openSearch);
+searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+searchInput.addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { searchResults.innerHTML = ''; return; }
+  const matches = searchData.filter(d => d.text.toLowerCase().includes(q) || d.section.toLowerCase().includes(q));
+  searchResults.innerHTML = matches.length ? matches.map(m => `<div class="search-result-item" onclick="closeSearch();document.querySelector('${m.href}').scrollIntoView({behavior:'smooth'})"><div class="sr-icon">${m.icon}</div><div><div class="sr-text">${m.text}</div><div class="sr-section">${m.section}</div></div></div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No results found</div>';
+});
+
+// ═══════════════════════════════════════════
+// NOTES
+// ═══════════════════════════════════════════
+function toggleNotes() { document.getElementById('notesPanel').classList.toggle('open'); }
+document.getElementById('notesBtn').addEventListener('click', toggleNotes);
+const notesTA = document.getElementById('notesTextarea');
+notesTA.value = localStorage.getItem('sn-notes') || '';
+function saveNotes() { localStorage.setItem('sn-notes', notesTA.value); showToast('💾', 'Notes saved!'); }
+function clearNotes() { notesTA.value = ''; localStorage.removeItem('sn-notes'); showToast('🗑️', 'Notes cleared'); }
+notesTA.addEventListener('input', () => { localStorage.setItem('sn-notes', notesTA.value); });
+
+// ═══════════════════════════════════════════
+// BOOKMARKS
+// ═══════════════════════════════════════════
+let bookmarks = JSON.parse(localStorage.getItem('sn-bookmarks') || '[]');
+function toggleBookmarks() { document.getElementById('bookmarksPanel').classList.toggle('open'); }
+document.getElementById('bookmarksBtn').addEventListener('click', toggleBookmarks);
+function renderBookmarks() {
+  const list = document.getElementById('bookmarksList');
+  document.getElementById('bmCount').textContent = bookmarks.length;
+  if (!bookmarks.length) { list.innerHTML = '<div class="bp-empty"><i class="fas fa-bookmark" style="font-size:24px;opacity:0.3;display:block;margin-bottom:10px"></i>No bookmarks yet.</div>'; return; }
+  list.innerHTML = bookmarks.map((b, i) => `<div class="bp-item" onclick="document.querySelector('${b.href}').scrollIntoView({behavior:'smooth'})"><span class="bp-icon"><i class="fas fa-bookmark"></i></span><span class="bp-text">${b.name}</span><button class="bp-remove" onclick="event.stopPropagation();removeBookmark(${i})"><i class="fas fa-times"></i></button></div>`).join('');
+}
+function toggleBookmarkSection(btn, name, href) {
+  const idx = bookmarks.findIndex(b => b.href === href);
+  if (idx >= 0) { bookmarks.splice(idx, 1); btn.querySelector('i').className = 'far fa-bookmark'; btn.classList.remove('bookmarked'); showToast('🔖', 'Bookmark removed'); }
+  else { bookmarks.push({ name, href }); btn.querySelector('i').className = 'fas fa-bookmark'; btn.classList.add('bookmarked'); showToast('🔖', `"${name}" bookmarked`); }
+  localStorage.setItem('sn-bookmarks', JSON.stringify(bookmarks));
+  renderBookmarks();
+}
+function removeBookmark(i) {
+  const href = bookmarks[i].href;
+  bookmarks.splice(i, 1);
+  localStorage.setItem('sn-bookmarks', JSON.stringify(bookmarks));
+  renderBookmarks();
+  document.querySelectorAll('.bookmark-section-btn').forEach(btn => {
+    if (btn.onclick.toString().includes(href)) { btn.querySelector('i').className = 'far fa-bookmark'; btn.classList.remove('bookmarked'); }
+  });
+  showToast('🗑️', 'Bookmark removed');
+}
+function exportBookmarks() {
+  if (!bookmarks.length) return showToast('📭', 'No bookmarks to export');
+  const text = 'SN Xpert — Week 3 Bookmarks\n' + '='.repeat(40) + '\n' + bookmarks.map((b, i) => `${i + 1}. ${b.name}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast('📋', 'Bookmarks copied to clipboard'));
+}
+renderBookmarks();
+// Restore bookmark button states
+bookmarks.forEach(b => {
+  document.querySelectorAll('.bookmark-section-btn').forEach(btn => {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(b.href)) {
+      btn.querySelector('i').className = 'fas fa-bookmark'; btn.classList.add('bookmarked');
+    }
+  });
+});
+
+// ═══════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeSearch(); document.getElementById('notesPanel').classList.remove('open'); document.getElementById('bookmarksPanel').classList.remove('open'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); toggleTheme(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); toggleNotes(); }
+});
+</script>
+</body>
+</html>
